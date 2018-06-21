@@ -13,14 +13,8 @@ DEBUG = True
 
 def process_frame(img):
     img = cv2.resize(img, (H, W))
-    cv2.imshow('frame', img)
-    if DEBUG: print(img.shape)
+    display.draw(img)
 
-    if cv2.waitKey(25) == ord('q'):
-        cv2.destroyAllWindows()
-        print >> sys.stderr, (
-            "Error. User terminated.")
-        exit(1)
 
 if __name__ == "__main__":
     cap = cv2.VideoCapture('./test.mp4')
