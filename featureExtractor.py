@@ -3,6 +3,10 @@ import cv2
 from skimage.measure import ransac
 from skimage.transform import FundamentalMatrixTransform as fmt
 from skimage.transform import EssentialMatrixTransform as emt
+
+# test statement
+import g2o
+
 np.set_printoptions(suppress=True)
 
 def calculateRt(E):
