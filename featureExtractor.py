@@ -3,10 +3,9 @@ import cv2
 from skimage.measure import ransac
 from skimage.transform import FundamentalMatrixTransform as fmt
 from skimage.transform import EssentialMatrixTransform as emt
-
+from utils import calculateRt, add_ones, normalize, denormalize
 # test statement
 import g2o
-
 np.set_printoptions(suppress=True)
 
 def calculateRt(E):
@@ -22,62 +21,61 @@ def calculateRt(E):
     pose = np.concatenate([R, transl.reshape(3, 1)], axis=1)
     return pose
 
-def add_ones(x):
-    return np.concatenate([x, np.ones((x.shape[0], 1))], axis=1)
-
-class FeatureExtractor(object):
-    def __init__(self, k):
-        self.orb = cv2.ORB_create(100)
-        self.bf = cv2.BFMatcher(cv2.NORM_HAMMING)
-        self.last = None
-        self.K = k
-        self.Kinv = np.linalg.inv(self.K)
-
-    def normalize(self, pts):
-        return np.dot(self.Kinv, add_ones(pts).T).T[:, 0:2]
-
-    def denormalize(self, pt):
-        ret = np.dot(self.K, np.array([pt[0], pt[1], 1.0]))
-        return int(round(ret[0])), int(round(ret[1]))
-
-
-    def extract(self, img):
-        # feature detection
+def featureExtractor(img):
+        orb = cv2.ORB_create(100)
         feats = cv2.goodFeaturesToTrack(np.mean(img, axis=2).astype(np.uint8),
-                                       1000,
+                                       3000,
                                        qualityLevel=0.01,
-                                       minDistance=3)
+                                       minDistance=7)
 
         # feature detection
         kps = [cv2.KeyPoint(x=f[0][0], y=f[0][1], _size=30) for f in feats]
-        kps, des = self.orb.compute(img, kps)
+        kps, des = orb.compute(img, kps)
+        return kps, des
 
-        # feature matching
-        good = []
-        pose = None
-        if self.last is not None:
-            match = self.bf.knnMatch(des, self.last['des'], k=2)
-            for m, n in match:
-                if m.distance < .75 * n.distance:
-                    p1 = kps[m.queryIdx].pt
-                    p2 = self.last['kps'][m.trainIdx].pt
+def frame_matches(frame1, frame2):
+    # feature matching
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING)
+    match = bf.knnMatch(frame1.des, frame2.des, k=2)
+
+    good = []
+    pose = None
+    idx1, idx2, test = [], [], []
+    idxs1, idxs2 = set(), set()
+    for m, n in match:
+        if m.distance < .75 * n.distance:
+            p1 = frame1.kps[m.queryIdx].pt
+            p2 = frame2.kps[m.trainIdx].pt
+            if m.distance < 32:
+                if m.queryIdx not in idxs1 and m.trainIdx not in idxs2:
+                    idx1.append(m.queryIdx)
+                    idx2.append(m.trainIdx)
+                    idxs1.add(m.queryIdx)
+                    idxs2.add(m.trainIdx)
                     good.append((p1, p2))
+                    test.append((p1, p2))
 
-        # feature filtering
-        if len(good) is not 0:
-            good = np.array(good)
+    # feature filtering
+    good = np.array(good)
+    idx1 = np.array(idx1)
+    idx2 = np.array(idx2)
+    test = np.array(test)
+    # data normalization
+    good[:, 0, :] = normalize(frame1.Kinv, good[:, 0, :])
+    good[:, 1, :] = normalize(frame2.Kinv, good[:, 1, :])
 
-            # data normalization
-            good[:, 0, :] = self.normalize(good[:, 0, :])
-            good[:, 1, :] = self.normalize(good[:, 1, :])
+    model, inliers = ransac((good[:, 0], good[:, 1]),
+                            emt,
+                            min_samples=8,
+                            residual_threshold=0.005,
+                            max_trials=100)
+    pose = calculateRt(model.params)
+    return test[inliers], pose
 
-            model, inliers = ransac((good[:, 0], good[:, 1]),
-                                    emt,
-                                    min_samples=8,
-                                    residual_threshold=0.005,
-                                    max_trials=100)
-            good = good[inliers]
-            pose = calculateRt(model.params)
 
-        self.last = {'kps' : kps, 'des' : des}
-        return good, pose
+class Frame(object):
+    def __init__(self, img, K):
+        self.frame = img
+        self.K = K
+        self.Kinv = np.linalg.inv(self.K)
+        self.kps, self.des = featureExtractor(self.frame)

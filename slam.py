@@ -4,37 +4,38 @@ import numpy as np
 import sys
 import time
 from display import Display
-from featureExtractor import FeatureExtractor
+from featureExtractor import Frame, frame_matches
+from utils import denormalize
 
 H = 1920//2
 W = 1080//2
 
-F = 740
+F = 240
 K = np.array([[F, 0, W//2],
               [0, F, H//2],
               [0, 0, 1]])
 
 display = Display(W, H)
-fe = FeatureExtractor(K)
-
+frames = []
 def process_frame(img):
     img = cv2.resize(img, (H, W))
-    match, pose = fe.extract(img)
-    if match is None:
+    frame = Frame(img, K)
+    frames.append(frame)
+    if len(frames) <= 1:
         return
 
-    for pt1, pt2 in match:
+    # match detection
+    matches, pose = frame_matches(frames[-1], frames[-2])
 
-        # denormalize points 
-        u1, v1 = fe.denormalize(pt1)
-        u2, v2 = fe.denormalize(pt2)
-
+    for (p1, p2) in matches:
         # draw features
+        u1, v1 = map(lambda x: int(round(x)), p1)
+        u2, v2 = map(lambda x: int(round(x)), p2)
         cv2.circle(img, (u1, v1), color=(0, 255, 0), radius=3)
+        cv2.circle(img, (u2, v2), color=(0, 255, 0), radius=3)
         cv2.line(img, (u1, v1), (u2, v2), color=(255, 0, 0))
 
     display.draw(img)
-
 
 
 if __name__ == "__main__":
