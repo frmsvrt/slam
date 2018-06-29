@@ -5,7 +5,7 @@ from skimage.transform import FundamentalMatrixTransform as fmt
 from skimage.transform import EssentialMatrixTransform as emt
 from utils import calculateRt, add_ones, normalize, denormalize
 # test statement
-import g2o
+# import g2o
 np.set_printoptions(suppress=True)
 
 def calculateRt(E):
@@ -24,14 +24,15 @@ def calculateRt(E):
 def featureExtractor(img):
         orb = cv2.ORB_create(100)
         feats = cv2.goodFeaturesToTrack(np.mean(img, axis=2).astype(np.uint8),
-                                       3000,
+                                       1000,
                                        qualityLevel=0.01,
                                        minDistance=7)
 
         # feature detection
         kps = [cv2.KeyPoint(x=f[0][0], y=f[0][1], _size=30) for f in feats]
         kps, des = orb.compute(img, kps)
-        return kps, des
+        # return kps, des
+        return ([(kp.pt[0], kp.pt[1]) for kp in kps]), des
 
 def frame_matches(frame1, frame2):
     # feature matching
@@ -44,8 +45,8 @@ def frame_matches(frame1, frame2):
     idxs1, idxs2 = set(), set()
     for m, n in match:
         if m.distance < .75 * n.distance:
-            p1 = frame1.kps[m.queryIdx].pt
-            p2 = frame2.kps[m.trainIdx].pt
+            p1 = frame1.kps[m.queryIdx]
+            p2 = frame2.kps[m.trainIdx]
             if m.distance < 32:
                 if m.queryIdx not in idxs1 and m.trainIdx not in idxs2:
                     idx1.append(m.queryIdx)
@@ -77,5 +78,17 @@ class Frame(object):
     def __init__(self, img, K):
         self.frame = img
         self.K = K
-        self.Kinv = np.linalg.inv(self.K)
-        self.kps, self.des = featureExtractor(self.frame)
+        self.kpss, self.des = featureExtractor(self.frame)
+
+    @property
+    def Kinv(self):
+        if not hasattr(self, '_Kinv'):
+            self._Kinv = np.linalg.inv(self.K)
+        return self._Kinv
+
+    @property
+    def kps(self):
+        if not hasattr(self, '_kps'):
+            self.kpss = np.array(self.kpss)
+            self._kps = normalize(self.Kinv, self.kpss)
+        return self._kps
