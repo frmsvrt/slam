@@ -24,14 +24,13 @@ def calculateRt(E):
 def featureExtractor(img):
         orb = cv2.ORB_create(100)
         feats = cv2.goodFeaturesToTrack(np.mean(img, axis=2).astype(np.uint8),
-                                       1000,
+                                       3000,
                                        qualityLevel=0.01,
                                        minDistance=7)
 
         # feature detection
         kps = [cv2.KeyPoint(x=f[0][0], y=f[0][1], _size=30) for f in feats]
         kps, des = orb.compute(img, kps)
-        # return kps, des
         return ([(kp.pt[0], kp.pt[1]) for kp in kps]), des
 
 def frame_matches(frame1, frame2):
@@ -53,8 +52,10 @@ def frame_matches(frame1, frame2):
                     idx2.append(m.trainIdx)
                     idxs1.add(m.queryIdx)
                     idxs2.add(m.trainIdx)
+                    test.append((denormalize(frame1.K, p1), denormalize(frame1.K, p2)))
                     good.append((p1, p2))
-                    test.append((p1, p2))
+
+    assert len(good) >= 8
 
     # feature filtering
     good = np.array(good)
