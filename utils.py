@@ -19,6 +19,6 @@ def add_ones(x):
 def normalize(Kinv, pts):
     return np.dot(Kinv, add_ones(pts).T).T[:, 0:2]
 
-def denormalize(Kinv, pt):
-    ret = np.dot(Kinv, np.array([pt[0], pt[1], 1.0]))
+def denormalize(K, pt):
+    ret = np.dot(K, np.array([pt[0], pt[1], 1.0]))
     return int(round(ret[0])), int(round(ret[1]))

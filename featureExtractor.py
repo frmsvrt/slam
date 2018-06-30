@@ -8,6 +8,8 @@ from utils import calculateRt, add_ones, normalize, denormalize
 # import g2o
 np.set_printoptions(suppress=True)
 
+IRt = np.eye(4)
+
 def calculateRt(E):
     U, S, Vt = np.linalg.svd(E)
     W = np.mat([[0, -1, 0], [1, 0, 0], [0, 0, 1]], dtype=float)
@@ -18,13 +20,15 @@ def calculateRt(E):
     if np.sum(R.diagonal()) < 0:
         R = np.dot(np.dot(U, W.T), Vt)
     transl = U[:, 2]
-    pose = np.concatenate([R, transl.reshape(3, 1)], axis=1)
-    return pose
+    Rt = np.eye(4)
+    Rt[:3, :3] = R
+    Rt[:3, 3] = transl
+    return Rt
 
 def featureExtractor(img):
         orb = cv2.ORB_create(100)
         feats = cv2.goodFeaturesToTrack(np.mean(img, axis=2).astype(np.uint8),
-                                       3000,
+                                       1000,
                                        qualityLevel=0.01,
                                        minDistance=7)
 
@@ -52,7 +56,7 @@ def frame_matches(frame1, frame2):
                     idx2.append(m.trainIdx)
                     idxs1.add(m.queryIdx)
                     idxs2.add(m.trainIdx)
-                    test.append((denormalize(frame1.K, p1), denormalize(frame1.K, p2)))
+                    test.append((p1, p2))
                     good.append((p1, p2))
 
     assert len(good) >= 8
@@ -72,7 +76,7 @@ def frame_matches(frame1, frame2):
                             residual_threshold=0.005,
                             max_trials=100)
     pose = calculateRt(model.params)
-    return test[inliers], pose
+    return idx1, idx2, pose
 
 
 class Frame(object):
@@ -80,6 +84,7 @@ class Frame(object):
         self.frame = img
         self.K = K
         self.kpss, self.des = featureExtractor(self.frame)
+        self.pose = IRt
 
     @property
     def Kinv(self):
