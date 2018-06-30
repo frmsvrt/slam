@@ -25,6 +25,17 @@ class Map(object):
         self.frames = []
         self.points = []
         self.viewer_init()
+        self.state = None
+        self.q = Queue()
+
+        p = Process(target=self.viewer_thread, args=(self, self.q,))
+        p.daemon = True
+        p.start()
+
+    def viewer_thread(self, q):
+        self.viewer_init()
+        while 1:
+            self.viewer_refresh(q)
 
     def viewer_init(self):
         pangolin.CreateWindowAndBind('Main', 640, 480)
@@ -41,6 +52,9 @@ class Map(object):
         self.dcam.SetHandler(self.handler)
 
     def viewer_refresh(self):
+        if self.state is None or not q.empty():
+            self.state = q.get()
+
         ppts = np.array([d[:3, 3] for d in self.state[0]])
         spts = np.array(self.state[1])
 
@@ -65,8 +79,7 @@ class Map(object):
            poses.append(f.pose)
         for p in self.points:
             pts.append(p.pt)
-        self.state = poses, pts
-        self.viewer_refresh()
+        self.q.put((poses, pts))
 
 
 m = Map()
