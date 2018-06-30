@@ -56,7 +56,6 @@ def frame_matches(frame1, frame2):
                     idx2.append(m.trainIdx)
                     idxs1.add(m.queryIdx)
                     idxs2.add(m.trainIdx)
-                    test.append((p1, p2))
                     good.append((p1, p2))
 
     assert len(good) >= 8
@@ -65,7 +64,6 @@ def frame_matches(frame1, frame2):
     good = np.array(good)
     idx1 = np.array(idx1)
     idx2 = np.array(idx2)
-    test = np.array(test)
     # data normalization
     good[:, 0, :] = normalize(frame1.Kinv, good[:, 0, :])
     good[:, 1, :] = normalize(frame2.Kinv, good[:, 1, :])
@@ -80,11 +78,14 @@ def frame_matches(frame1, frame2):
 
 
 class Frame(object):
-    def __init__(self, img, K):
+    def __init__(self, m, img, K):
         self.frame = img
         self.K = K
         self.kpss, self.des = featureExtractor(self.frame)
         self.pose = IRt
+
+        self.id = len(m.frames)
+        m.frames.append(self)
 
     @property
     def Kinv(self):
