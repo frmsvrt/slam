@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 
 def calculateRt(E):
     U, S, Vt = np.linalg.svd(E)
@@ -22,3 +23,9 @@ def normalize(Kinv, pts):
 def denormalize(K, pt):
     ret = np.dot(K, np.array([pt[0], pt[1], 1.0]))
     return int(round(ret[0])), int(round(ret[1]))
+
+def triangulate(pose1, pose2, pts1, pts2):
+    return cv2.triangulatePoints(pose1[:3],
+                                 pose2[:3],
+                                 pts1.T,
+                                 pts2.T).T
