@@ -24,51 +24,60 @@ class Map(object):
     def __init__(self):
         self.frames = []
         self.points = []
-        self.viewer_init()
+        # self.viewer_init()
         self.state = None
         self.q = Queue()
 
-        p = Process(target=self.viewer_thread, args=(self, self.q,))
-        p.daemon = True
-        p.start()
+        self.p = Process(target=self.viewer_thread, args=(self.q,))
+        self.p.daemon = True
+        self.p.start()
 
     def viewer_thread(self, q):
-        self.viewer_init()
+        self.viewer_init(1024, 768)
         while 1:
             self.viewer_refresh(q)
 
-    def viewer_init(self):
-        pangolin.CreateWindowAndBind('Main', 640, 480)
+    def viewer_init(self, w, h):
+        pangolin.CreateWindowAndBind('Main', w, h)
         gl.glEnable(gl.GL_DEPTH_TEST)
 
         self.scam = pangolin.OpenGlRenderState(
-            pangolin.ProjectionMatrix(640, 480, 420, 420, 320, 240, 0.2, 100),
-            pangolin.ModelViewLookAt(-2, 2, -2, 0, 0, 0, pangolin.AxisDirection.AxisY))
+            pangolin.ProjectionMatrix(w, h, 420, 420, w//2, h//2, 0.2, 1000),
+            pangolin.ModelViewLookAt(0, -10, -8, 
+                                     0, 0, 0,
+                                     0, -1, 0))
         self.handler = pangolin.Handler3D(self.scam)
 
         # Create Interactive View in window
         self.dcam = pangolin.CreateDisplay()
-        self.dcam.SetBounds(0.0, 1.0, 0.0, 1.0, -640.0/480.0)
+        self.dcam.SetBounds(0.0, 1.0, 0.0, 1.0, w/h)
         self.dcam.SetHandler(self.handler)
+        # hack to avoid small Pangolin, no idea why it's *2
+        self.dcam.Resize(pangolin.Viewport(0,0,w*2,h*2))
+        self.dcam.Activate()
 
-    def viewer_refresh(self):
+
+    def viewer_refresh(self, q):
         if self.state is None or not q.empty():
             self.state = q.get()
 
-        ppts = np.array([d[:3, 3] for d in self.state[0]])
-        spts = np.array(self.state[1])
-
         gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
-        gl.glClearColor(1.0, 1.0, 1.0, 1.0)
+        gl.glClearColor(0.0, 0.0, 0.0, 1.0)
         self.dcam.Activate(self.scam)
 
-        gl.glPointSize(10)
-        gl.glColor3f(0.0, 1.0, 0.0)
-        pangolin.DrawPoints(ppts)
+        if self.state is not None:
+            if self.state[0].shape[0] >= 2:
+                gl.glColor3f(0.0, 1.0, 0.0)
+                pangolin.DrawCameras(self.state[0][:-1])
 
-        gl.glPointSize(2)
-        gl.glColor3f(0.0, 1.0, 0.0)
-        pangolin.DrawPoints(spts)
+            if self.state[0].shape[0] >= 1:
+                gl.glColor3f(1.0, 1.0, 0.0)
+                pangolin.DrawCameras(self.state[0][-1:])
+
+            if self.state[1].shape[0] != 0:
+                gl.glPointSize(2)
+                gl.glColor3f(1.0, 0.0, 0.0)
+                pangolin.DrawPoints(self.state[1])
 
         pangolin.FinishFrame()
 
@@ -79,11 +88,11 @@ class Map(object):
            poses.append(f.pose)
         for p in self.points:
             pts.append(p.pt)
-        self.q.put((poses, pts))
+        self.q.put((np.array(poses), np.array(pts)))
 
 
 m = Map()
-display = Display(W, H)
+# display = Display(W, H)
 
 
 class Point(object):
@@ -143,8 +152,11 @@ def process_frame(img):
         cv2.circle(img, (u2, v2), color=(0, 255, 0), radius=3)
         cv2.line(img, (u1, v1), (u2, v2), color=(255, 0, 0))
 
-    display.draw(img)
+    # display.draw(img)
+    cv2.imshow('SLAM', img)
     m.display()
+    if cv2.waitKey(1) == ord('q'):
+        exit(-1)
 
 
 if __name__ == "__main__":
