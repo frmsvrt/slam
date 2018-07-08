@@ -2,8 +2,8 @@ import numpy as np
 import cv2
 from skimage.measure import ransac
 from skimage.transform import FundamentalMatrixTransform as fmt
-from skimage.transform import EssentialMatrixTransform as emt
-from utils import calculateRt, add_ones, normalize, denormalize, calcRt
+from skimage.transform import EssentialMatrixTransform
+from utils import calculateRt, add_ones, normalize, denormalize
 # test statement
 # import g2o
 np.set_printoptions(suppress=True)
@@ -11,7 +11,7 @@ np.set_printoptions(suppress=True)
 IRt = np.eye(4)
 
 def featureExtractor(img):
-    orb = cv2.ORB_create(100)
+    orb = cv2.ORB_create(250)
     feats = cv2.goodFeaturesToTrack(np.mean(img, axis=2).astype(np.uint8),
                                    1000,
                                    qualityLevel=0.01,
@@ -28,11 +28,10 @@ def frame_matches(frame1, frame2):
     match = bf.knnMatch(frame1.des, frame2.des, k=2)
 
     good = []
-    pose = None
     idx1, idx2, test = [], [], []
     idxs1, idxs2 = set(), set()
     for m, n in match:
-        if m.distance < .75 * n.distance:
+        if m.distance < .80 * n.distance:
             p1 = frame1.kps[m.queryIdx]
             p2 = frame2.kps[m.trainIdx]
             if m.distance < 32:
@@ -49,37 +48,23 @@ def frame_matches(frame1, frame2):
     good = np.array(good)
     idx1 = np.array(idx1)
     idx2 = np.array(idx2)
-
-    # data normalization
-    good[:, 0, :] = normalize(frame1.Kinv, good[:, 0, :])
-    good[:, 1, :] = normalize(frame2.Kinv, good[:, 1, :])
-
-    # fundamental matrix -> essential matrix
-    F, mask = cv2.findFundamentalMat(good[:, 0], good[:, 1],
-                                     cv2.FM_RANSAC, 0.1, 0.99)
-
-    first_inliers = []
-    second_inliers = []
-    for i in range(len(mask)):
-        first_inliers.append(good[i, 0, :])
-        second_inliers.append(good[i, 1, :])
-
-    E = frame1.K.T.dot(F).dot(frame1.K)
-    #model, inliers = ransac((good[:, 0], good[:, 1]),
-    #                       emt,
-    #                       min_samples=8,
-    #                       residual_threshold=0.005,
-    #                       max_trials=100)
-    pose = calcRt(E, good[:, 0], good[:, 1])
-    return idx1, idx2, pose
-
+    """
+    model, mask = ransac((good[:, 0], good[:, 1]),
+                         EssentialMatrixTransform,
+                         min_samples=8,
+                         residual_threshold=.002,
+                         max_trials=100)
+    """
+    F, mask = cv2.findFundamentalMat(good[:, 0], good[:, 1], cv2.FM_RANSAC, 0.1, 0.99)
+    E = frame1.K.dot(F).dot(frame1.K)
+    return idx1[mask], idx2[mask], calculateRt(E)
 
 class Frame(object):
-    def __init__(self, m, img, K):
+    def __init__(self, m, img, K, pose=np.eye(4)):
         self.frame = img
         self.K = K
         self.kpss, self.des = featureExtractor(self.frame)
-        self.pose = IRt
+        self.pose = np.array(pose)
 
         self.id = len(m.frames)
         m.frames.append(self)

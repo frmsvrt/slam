@@ -17,42 +17,6 @@ def calculateRt(E):
     print(Rt)
     return Rt
 
-def calcRt(E, first_inliers, second_inliers):
-    U, S, Vt = np.linalg.svd(E)
-    W = np.mat([[0, -1, 0], [1, 0, 0], [0, 0, 1]], dtype=float)
-    # Szelinski 9.19
-    R = U.dot(W).dot(Vt)
-    t = U[:, 2]
-
-    if not in_front_of_both_frames(first_inliers, second_inliers, R, t):
-        t = -U[:, 2]
-
-    if not in_front_of_both_frames(first_inliers, second_inliers, R, t):
-        R = U.dot(W.T).dot(Vt)
-        t = U[:, 2]
-
-    if not in_front_of_both_frames(first_inliers, second_inliers, R, t):
-        t = -U[:, 2]
-
-    Rt = np.eye(4)
-    Rt[:3, :3] = R
-    Rt[:3, 3] = t
-    print(Rt)
-    return Rt
-
-def in_front_of_both_frames(first_inliers, second_inliers, R, t):
-    for first, second in zip(first_inliers, second_inliers):
-        first = np.array([first[0], first[1], 1.0])
-        second = np.array([second[0], second[0], 1.0])
-        first_z = np.dot(R[0, :] - second[0]*R[2, :], t) / np.dot(R[0, :] - second[0]*R[2, :], second)
-
-        first_3d_point = np.array([first[0] * first_z, second[0]*first_z, first_z]).reshape(3,)
-        second_3d_points = np.dot(R.T, first_3d_point) - np.dot(R.T, t)
-        second_3d_points = second_3d_points.reshape(first_3d_point.shape)
-        if first_3d_point[2] < 0 or second_3d_points[0,2] < 0:
-            return False
-    return True
-
 def add_ones(x):
     return np.concatenate([x, np.ones((x.shape[0], 1))], axis=1)
 
