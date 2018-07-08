@@ -61,7 +61,7 @@ def process_frame(img):
     cv2.imshow('SLAM', img)
     m.display()
     if cv2.waitKey(1) == ord('q'):
-        exit(-1)
+       exit(-1)
 
 
 if __name__ == "__main__":
