@@ -2,6 +2,7 @@
 import numpy as np
 import sys
 # sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
+import os
 import cv2
 import time
 from display import Display
@@ -18,6 +19,8 @@ K = np.array([[F, 0, W//2],
               [0, 0, 1]])
 
 m = Map()
+if os.getenv('d3d') is not None:
+    m.create_viewer()
 # display = Display(W, H)
 
 def process_frame(img):
@@ -59,14 +62,15 @@ def process_frame(img):
         cv2.line(img, (u1, v1), (u2, v2), color=(255, 0, 0))
 
     # display.draw(img)
-    cv2.imshow('SLAM', img)
-    m.display()
-    if cv2.waitKey(1) == ord('q'):
-       exit(-1)
+    if os.getenv('d2d'):
+        cv2.imshow('SLAM', img)
+        m.display()
+        if cv2.waitKey(1) == ord('q'):
+           exit(-1)
 
 
 if __name__ == "__main__":
-    cap = cv2.VideoCapture('./test.mp4')
+    cap = cv2.VideoCapture('./ohio.mp4')
 
     while cap.isOpened():
         ret, frame = cap.read()
