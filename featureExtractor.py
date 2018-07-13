@@ -48,16 +48,15 @@ def frame_matches(frame1, frame2):
     good = np.array(good)
     idx1 = np.array(idx1)
     idx2 = np.array(idx2)
-    """
     model, mask = ransac((good[:, 0], good[:, 1]),
                          EssentialMatrixTransform,
                          min_samples=8,
                          residual_threshold=.002,
                          max_trials=100)
-    """
-    F, mask = cv2.findFundamentalMat(good[:, 0], good[:, 1], cv2.FM_RANSAC, 0.1, 0.99)
-    E = frame1.K.dot(F).dot(frame1.K)
-    return idx1[mask], idx2[mask], calculateRt(E)
+    # TODO: test cv2
+    # F, mask = cv2.findFundamentalMat(good[:, 0], good[:, 1], cv2.FM_RANSAC, 0.1, 0.99)
+    # E = frame1.K.dot(F).dot(frame1.K)
+    return idx1[mask], idx2[mask], calculateRt(model.params)
 
 class Frame(object):
     def __init__(self, m, img, K, pose=np.eye(4)):

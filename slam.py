@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-import cv2
 import numpy as np
 import sys
+# sys.path.remove('/opt/ros/kinetic/lib/python2.7/dist-packages')
+import cv2
 import time
 from display import Display
 from featureExtractor import Frame, frame_matches, IRt
