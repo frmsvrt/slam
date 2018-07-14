@@ -69,6 +69,8 @@ class Map(object):
 
 
   def display(self):
+    if self.q is None:
+      return
     poses, pts = [], []
     for f in self.frames:
      poses.append(f.pose)
@@ -88,5 +90,5 @@ class Point(object):
 
   def add_observation(self, frame, idx):
     self.frames.append(frame)
-    frame.kps[idx] = self
+    frame.pts[idx] = self
     self.idx.append(idx)

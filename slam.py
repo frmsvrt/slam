@@ -44,8 +44,12 @@ def process_frame(img):
            f1.kps[idx1],
            f2.kps[idx2])
 
+  for i, idx in enumerate(idx2):
+    if f2.pts[idx] is not None and f1.pts[idx1[i]] is None:
+      f2.pts[idx].add_observation(f1, idx1[i])
+
   # points filtering
-  unmatched = np.array([f1.kps[i] is None for i in idx1]).astype(np.bool)
+  unmatched = np.array([f1.pts[i] is None for i in idx1]).astype(np.bool)
   _filter = (np.abs(pts4[:, 3]) > .005) & (pts4[:, 2] > 0) & unmatched
   # _filter = np.array([f1.kps[i] is None for i in idx1])
   #_filter &= np.abs(pts4[:, 3]) != 0

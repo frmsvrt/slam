@@ -66,6 +66,7 @@ class Frame(object):
     self.frame = img
     self.K = K
     self.kpss, self.des = featureExtractor(self.frame)
+    self.pts = [None] * len(self.kpss)
     self.pose = np.array(pose)
 
     self.id = len(m.frames)
