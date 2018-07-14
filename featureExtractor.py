@@ -30,6 +30,9 @@ def frame_matches(frame1, frame2):
   good = []
   idx1, idx2, test = [], [], []
   idxs1, idxs2 = set(), set()
+
+  # TODO: check bf matcher checker
+  # Lowe's checker
   for m, n in match:
     if m.distance < .80 * n.distance:
       p1 = frame1.kps[m.queryIdx]
@@ -53,7 +56,7 @@ def frame_matches(frame1, frame2):
             min_samples=8,
             residual_threshold=.002,
             max_trials=100)
-  # TODO: test cv2
+  # TODO: test cv2.findEssentialMat
   # F, mask = cv2.findFundamentalMat(good[:, 0], good[:, 1], cv2.FM_RANSAC, 0.1, 0.99)
   # E = frame1.K.dot(F).dot(frame1.K)
   return idx1[mask], idx2[mask], calculateRt(model.params)
