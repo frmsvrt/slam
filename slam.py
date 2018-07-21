@@ -25,7 +25,7 @@ if os.getenv('d3d') is not None:
 
 def process_frame(img):
   img = cv2.resize(img, (H, W))
-  frame = Frame(m, img, K)
+  frame = Frame(m, img, K, H, W)
   if frame.id == 0:
     return
 
@@ -53,6 +53,7 @@ def process_frame(img):
   _filter = (np.abs(pts4[:, 3]) > .005) & (pts4[:, 2] > 0) & unmatched
   # _filter = np.array([f1.kps[i] is None for i in idx1])
   #_filter &= np.abs(pts4[:, 3]) != 0
+  print('%d new points' % len(unmatched))
   pts4 /= pts4[:, 3:]
 
   for i,p in enumerate(pts4):
@@ -70,13 +71,14 @@ def process_frame(img):
     cv2.circle(img, (u2, v2), color=(0, 255, 0), radius=3)
     cv2.line(img, (u1, v1), (u2, v2), color=(255, 0, 0))
 
-  # display.draw(img)
+  if frame.id >= 3:
+    m.optimize()
+
   if os.getenv('d2d'):
     cv2.imshow('SLAM', img)
     m.display()
     if cv2.waitKey(1) == 27:
      exit(-1)
-
 
 if __name__ == "__main__":
   if len(sys.argv) < 2:

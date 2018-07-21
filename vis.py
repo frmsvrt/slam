@@ -1,6 +1,7 @@
 import OpenGL.GL as gl
 import numpy as np
 import pangolin
+import g2o
 
 from multiprocessing import Process, Queue
 
@@ -11,6 +12,43 @@ class Map(object):
     # self.viewer_init()
     self.state = None
     self.q = None
+
+  def optimize(self):
+    # optimizer
+    opt = g2o.SparseOptimizer()
+    solver = g2o.BlockSolverSE3(g2o.LinearSolverCholmodSE3())
+    solver = g2o.OptimizationAlgorithmLevenberg(solver)
+    opt.set_algorithm(solver)
+
+    robust_kernel = g2o.RobustKernelHuber(np.sqrt(5.991))
+
+    for f in self.frames:
+      v_se3 = g2o.VertexSE3Expmap()
+      v_se3.set_id(f.id)
+      v_se3.set_estimate(g2o.SE3Quat(f.pose[0:3, 0:3], f.pose[3, 0:3]))
+      v_se3.set_fixed(f.id == 0)
+      opt.add_vertex(v_se3)
+
+    for p in self.points:
+      pt = g2o.VertexSBAPointXYZ()
+      pt.set_id(p.id + 0x10000)
+      pt.set_estimate(p.pt[0:3])
+      pt.set_marginalized(True)
+      opt.add_vertex(pt)
+      
+      for f in p.frames:
+        edge = g2o.EdgeSE3ProjectXYZ()
+        edge.set_vertex(0, pt)
+        edge.set_vertex(1, opt.vertex(f.id))
+
+        print(f.kps[f.pts.index(p)])
+        edge.set_measurement(f.kps[f.pts.index(p)])
+
+        edge.set_information(np.eye(2))
+        edge.set_robust_kernel(robust_kernel)
+        opt.add_edge(edge)
+
+    opt.optimize(20)
 
   def create_viewer(self):
     self.q = Queue()
@@ -24,7 +62,7 @@ class Map(object):
       self.viewer_refresh(q)
 
   def viewer_init(self, w, h):
-    pangolin.CreateWindowAndBind('Main', w, h)
+    pangolin.CreateWindowAndBind('SLAM', w, h)
     gl.glEnable(gl.GL_DEPTH_TEST)
 
     self.scam = pangolin.OpenGlRenderState(
