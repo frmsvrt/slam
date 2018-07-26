@@ -60,8 +60,8 @@ def process_frame(img):
     if not _filter[i]:
       continue
     pt = Point(m, p)
-    pt.add_observation(f1, i)
-    pt.add_observation(f2, i)
+    pt.add_observation(f1, idx1[i])
+    pt.add_observation(f2, idx2[i])
 
   for (p1, p2) in zip(f1.kps[idx1], f2.kps[idx2]):
     # draw features
@@ -71,7 +71,7 @@ def process_frame(img):
     cv2.circle(img, (u2, v2), color=(0, 255, 0), radius=3)
     cv2.line(img, (u1, v1), (u2, v2), color=(255, 0, 0))
 
-  if frame.id >= 3:
+  if frame.id >= 4:
     m.optimize()
 
   if os.getenv('d2d'):

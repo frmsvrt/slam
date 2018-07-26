@@ -23,9 +23,12 @@ class Map(object):
     robust_kernel = g2o.RobustKernelHuber(np.sqrt(5.991))
 
     for f in self.frames:
-      v_se3 = g2o.VertexSE3Expmap()
+      sbacam = g2o.SBACam(g2o.SE3Quat(f.pose[:3, :3], f.pose[:3, 3]))
+      sbacam.set_cam(f.K[0][0], f.K[1][1], f.K[2][0], f.K[2][1], 1.0)
+
+      v_se3 = g2o.VertexCam()
       v_se3.set_id(f.id)
-      v_se3.set_estimate(g2o.SE3Quat(f.pose[0:3, 0:3], f.pose[3, 0:3]))
+      v_se3.set_estimate(sbacam)
       v_se3.set_fixed(f.id == 0)
       opt.add_vertex(v_se3)
 
@@ -34,20 +37,22 @@ class Map(object):
       pt.set_id(p.id + 0x10000)
       pt.set_estimate(p.pt[0:3])
       pt.set_marginalized(True)
+      pt.set_fixed(False)
       opt.add_vertex(pt)
       
       for f in p.frames:
-        edge = g2o.EdgeSE3ProjectXYZ()
+        edge = g2o.EdgeProjectP2MC()
         edge.set_vertex(0, pt)
         edge.set_vertex(1, opt.vertex(f.id))
-
-        print(f.kps[f.pts.index(p)])
-        edge.set_measurement(f.kps[f.pts.index(p)])
+        uv = f.kps[f.pts.index(p)]
+        edge.set_measurement(uv)
 
         edge.set_information(np.eye(2))
         edge.set_robust_kernel(robust_kernel)
         opt.add_edge(edge)
 
+    opt.set_verbose(True)
+    opt.initialize_optimization()
     opt.optimize(20)
 
   def create_viewer(self):

@@ -14,6 +14,7 @@ def calculateRt(E):
   Rt = np.eye(4)
   Rt[:3, :3] = R
   Rt[:3, 3] = transl
+  print(Rt)
   return Rt
 
 def add_ones(x):
