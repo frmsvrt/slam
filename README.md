@@ -1,5 +1,6 @@
+*toy SLAM for fun
 What we have:
  - feature extraction and it's tracking
- - point projection
+ - points projection
  - visualization
  - graph (constraints?) optimization
