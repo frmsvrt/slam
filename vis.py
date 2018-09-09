@@ -39,7 +39,7 @@ class Map(object):
       pt.set_marginalized(True)
       pt.set_fixed(False)
       opt.add_vertex(pt)
-      
+
       for f in p.frames:
         edge = g2o.EdgeProjectP2MC()
         edge.set_vertex(0, pt)
@@ -106,7 +106,7 @@ class Map(object):
       if self.state[1].shape[0] != 0:
         gl.glPointSize(2)
         gl.glColor3f(1.0, 0.0, 0.0)
-        pangolin.DrawPoints(self.state[1])
+        pangolin.DrawPoints(self.state[1], self.state[2])
 
     pangolin.FinishFrame()
 
@@ -114,19 +114,21 @@ class Map(object):
   def display(self):
     if self.q is None:
       return
-    poses, pts = [], []
+    poses, pts, colors = [], [], []
     for f in self.frames:
      poses.append(f.pose)
     for p in self.points:
       pts.append(p.pt)
-    self.q.put((np.array(poses), np.array(pts)))
+      colors.append(p.color)
+    self.q.put((np.array(poses), np.array(pts), np.array(colors)/256.0))
 
 
 class Point(object):
-  def __init__(self, m, loc):
+  def __init__(self, m, loc, color):
     self.frames = []
     self.pt = loc
     self.idx = []
+    self.color = np.array(color)
 
     self.id = len(m.points)
     m.points.append(self)
