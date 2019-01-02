@@ -1,5 +1,5 @@
 *toy SLAM for fun
----
+___
 ![](misc/promo.png)
 What we have:
  - feature extraction using **Oriented FAST and Rotated BRIEF**
@@ -8,13 +8,13 @@ What we have:
  - camera pose estimation and points triangulation
  - visualization with **pangolin viwer**
  - graph (constraints?) optimization with **g2o** optimizer
-___
+---
 Dependencies:
 - numpy
 - cv2
 - pangolin
 - g2o
-___
+---
 Usage:
 `d3d=1 d2d=1 python slam.py kitty.mp4`
 
