@@ -4,6 +4,7 @@ ___
 What we have:
  - feature detection/tracking using **ORB** and **good features to track**
  - Fundamental/Essential matricies estimation using **RANSAC**
+ - derive **Rotation** and **Translation** from camera matricies
  - camera pose estimation and points triangulation
  - visualization with **pangolin viwer**
  - graph (constraints?) optimization with **g2o** optimizer
